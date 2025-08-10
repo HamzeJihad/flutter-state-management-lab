@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_state_management_lab/features/pomodoro/presentation/pages/pomodoro_page.dart';
+import 'package:get/get.dart';
+import '../features/pomodoro/presentation/pages/pomodoro_page.dart';
 import 'theme/app_theme.dart';
 import 'di/locator.dart';
 
@@ -12,7 +13,7 @@ class App extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeCtrl.mode,
       builder: (_, mode, _) {
-        return MaterialApp(
+        return GetMaterialApp(
           title: 'Pomodinho',
           themeMode: mode,
           theme: lightTheme,

@@ -6,7 +6,6 @@ import '../../data/datasources/local/prefs_datasource.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/usecases/load_settings.dart';
 import '../../domain/usecases/save_settings.dart';
-import '../../features/pomodoro/presentation/state/pomodoro_controller_change.dart';
 import '../theme/app_theme.dart';
 
 final sl = GetIt.instance;
@@ -20,6 +19,5 @@ Future<void> setupLocator() async {
     ..registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(sl()))
     ..registerLazySingleton(() => LoadSettings(sl()))
     ..registerLazySingleton(() => SaveSettings(sl()))
-    ..registerLazySingleton(() => ThemeController(sl())) 
-    ..registerFactory(() => PomodoroControllerChange(sl(), sl(), sl()));
+    ..registerLazySingleton(() => ThemeController(sl()));
 }
