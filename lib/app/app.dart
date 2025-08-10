@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_state_management_lab/features/pomodoro/presentation/pages/pomodoro_page.dart';
+import '../features/pomodoro/presentation/pages/pomodoro_page.dart';
 import 'theme/app_theme.dart';
 import 'di/locator.dart';
 
