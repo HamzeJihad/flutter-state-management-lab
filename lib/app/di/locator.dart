@@ -6,7 +6,6 @@ import '../../data/datasources/local/prefs_datasource.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/usecases/load_settings.dart';
 import '../../domain/usecases/save_settings.dart';
-import '../../features/pomodoro/presentation/state/pomodoro_controller_change.dart';
 import '../../features/pomodoro/presentation/state/pomodoro_cubit.dart';
 import '../theme/app_theme.dart';
 
@@ -16,12 +15,11 @@ Future<void> setupLocator() async {
   final prefs = await SharedPreferences.getInstance();
 
   sl
-     ..registerLazySingleton(() => ThemeController(sl()))
+    ..registerLazySingleton(() => ThemeController(sl()))
     ..registerLazySingleton(() => Ticker())
     ..registerLazySingleton(() => PrefsDataSource(prefs))
     ..registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(sl()))
     ..registerLazySingleton(() => LoadSettings(sl()))
     ..registerLazySingleton(() => SaveSettings(sl()))
-    ..registerFactory(() => PomodoroControllerChange(sl(), sl(), sl()))
-    ..registerFactory(() => PomodoroCubit(sl(), sl(), sl())); 
+    ..registerFactory(() => PomodoroCubit(sl(), sl(), sl()));
 }
