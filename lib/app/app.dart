@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_state_management_lab/features/pomodoro/presentation/pages/pomodoro_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../features/pomodoro/presentation/pages/pomodoro_page.dart';
 import 'theme/app_theme.dart';
 import 'di/locator.dart';
+import '../features/pomodoro/presentation/state/pomodoro_cubit.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -12,12 +14,15 @@ class App extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeCtrl.mode,
       builder: (_, mode, _) {
-        return MaterialApp(
-          title: 'Pomodinho',
-          themeMode: mode,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          home: const PomodoroPage(),
+        return BlocProvider<PomodoroCubit>(
+          create: (_) => sl<PomodoroCubit>()..init(),
+          child: MaterialApp(
+            title: 'Pomodinho',
+            themeMode: mode,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            home: const PomodoroPage(),
+          ),
         );
       },
     );
