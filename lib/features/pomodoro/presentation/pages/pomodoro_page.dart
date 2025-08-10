@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import '../../../../app/di/locator.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/time_formatter.dart';
 import '../state/controller_contract.dart';
-import '../state/pomodoro_controller_change.dart';
+import '../state/pomodoro_store.dart';
 
 class PomodoroPage extends StatefulWidget {
   const PomodoroPage({super.key});
@@ -13,24 +14,24 @@ class PomodoroPage extends StatefulWidget {
 }
 
 class _PomodoroPageState extends State<PomodoroPage> {
-  late final IPomodoroController controller;
+  late final PomodoroStore store;
 
   @override
   void initState() {
     super.initState();
-    controller = sl<PomodoroControllerChange>();
-    controller.init();
+    store = sl<PomodoroStore>();
+    store.init();
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    store.dispose();
     super.dispose();
   }
 
   void _openSettings() async {
-    final workCtrl = TextEditingController(text: controller.workMinutes.toString());
-    final breakCtrl = TextEditingController(text: controller.breakMinutes.toString());
+    final workCtrl = TextEditingController(text: store.workMinutes.toString());
+    final breakCtrl = TextEditingController(text: store.breakMinutes.toString());
     final themeCtrl = sl<ThemeController>();
 
     await showModalBottomSheet(
@@ -64,7 +65,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                     valueListenable: themeCtrl.mode,
                     builder: (_, mode, _) => Switch(
                       value: mode == ThemeMode.dark,
-                      onChanged: (_) => themeCtrl.toggle(),
+                      onChanged: (_) async => await themeCtrl.toggle(),
                     ),
                   ),
                 ],
@@ -72,10 +73,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () async {
-                  final w = int.tryParse(workCtrl.text) ?? controller.workMinutes;
-                  final b = int.tryParse(breakCtrl.text) ?? controller.breakMinutes;
-                  await controller.updateSettings(workMin: w, breakMin: b);
-                  if (mounted) Navigator.of(context).pop();
+                  final w = int.tryParse(workCtrl.text) ?? store.workMinutes;
+                  final b = int.tryParse(breakCtrl.text) ?? store.breakMinutes;
+                  await store.updateSettings(workMin: w, breakMin: b);
+                  if (Navigator.canPop(context)) Navigator.pop(context);
                 },
                 child: const Text('Salvar'),
               ),
@@ -88,12 +89,11 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller as ChangeNotifier,
-      builder: (_, _) {
-        final remaining = formatSeconds(controller.remainingSeconds);
-        final isRunning = controller.isRunning;
-        final isFocus = controller.phase == PomodoroPhase.focus;
+    return Observer(
+      builder: (_) {
+        final remaining = formatSeconds(store.remainingSeconds);
+        final isRunning = store.isRunning;
+        final isFocus = store.phase == PomodoroPhase.focus;
 
         return Scaffold(
           appBar: AppBar(
@@ -123,7 +123,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                           width: 160,
                           height: 160,
                           child: CircularProgressIndicator(
-                            value: controller.progress.clamp(0, 1),
+                            value: store.progress.clamp(0, 1),
                             strokeWidth: 10,
                           ),
                         ),
@@ -139,24 +139,26 @@ class _PomodoroPageState extends State<PomodoroPage> {
                     spacing: 12,
                     children: [
                       FilledButton.tonal(
-                        onPressed: isRunning ? null : controller.start,
+                        onPressed: isRunning ? null : store.start,
                         child: const Text('Start'),
                       ),
                       FilledButton.tonal(
-                        onPressed: isRunning ? controller.pause : null,
+                        onPressed: isRunning ? store.pause : null,
                         child: const Text('Pause'),
                       ),
                       FilledButton(
-                        onPressed: controller.reset,
+                        onPressed: store.reset,
                         child: const Text('Reset'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text('Sessões concluídas: ${controller.sessionsDone}'),
+                  Text('Sessões concluídas: ${store.sessionsDone}'),
                   const SizedBox(height: 8),
-                  Text('Foco: ${controller.workMinutes} min • Pausa: ${controller.breakMinutes} min',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'Foco: ${store.workMinutes} min • Pausa: ${store.breakMinutes} min',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),
