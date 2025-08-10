@@ -1,34 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../app/di/locator.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/time_formatter.dart';
 import '../state/controller_contract.dart';
 import '../state/pomodoro_controller_change.dart';
 
-class PomodoroPage extends StatefulWidget {
+class PomodoroPage extends StatelessWidget {
   const PomodoroPage({super.key});
 
-  @override
-  State<PomodoroPage> createState() => _PomodoroPageState();
-}
-
-class _PomodoroPageState extends State<PomodoroPage> {
-  late final IPomodoroController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = sl<PomodoroControllerChange>();
-    controller.init();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  void _openSettings() async {
+  void _openSettings(BuildContext context, IPomodoroController controller) async {
     final workCtrl = TextEditingController(text: controller.workMinutes.toString());
     final breakCtrl = TextEditingController(text: controller.breakMinutes.toString());
     final themeCtrl = sl<ThemeController>();
@@ -53,7 +34,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
               TextField(
                 controller: breakCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Minutos de pausa', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Minutos de pausa',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -64,7 +48,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                     valueListenable: themeCtrl.mode,
                     builder: (_, mode, _) => Switch(
                       value: mode == ThemeMode.dark,
-                      onChanged: (_) => themeCtrl.toggle(),
+                      onChanged: (_) async => await themeCtrl.toggle(),
                     ),
                   ),
                 ],
@@ -75,7 +59,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                   final w = int.tryParse(workCtrl.text) ?? controller.workMinutes;
                   final b = int.tryParse(breakCtrl.text) ?? controller.breakMinutes;
                   await controller.updateSettings(workMin: w, breakMin: b);
-                  if (mounted) Navigator.of(context).pop();
+                  if (Navigator.canPop(context)) Navigator.pop(context);
                 },
                 child: const Text('Salvar'),
               ),
@@ -88,81 +72,73 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller as ChangeNotifier,
-      builder: (_, _) {
-        final remaining = formatSeconds(controller.remainingSeconds);
-        final isRunning = controller.isRunning;
-        final isFocus = controller.phase == PomodoroPhase.focus;
+    final IPomodoroController controller = context.watch<PomodoroControllerChange>();
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Pomodinho'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: _openSettings,
+    final remaining = context.select<PomodoroControllerChange, String>(
+      (c) => formatSeconds(c.remainingSeconds),
+    );
+    final isRunning = controller.isRunning;
+    final isFocus = controller.phase == PomodoroPhase.focus;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pomodinho'),
+        actions: [
+          IconButton(icon: const Icon(Icons.settings), onPressed: () => _openSettings(context, controller)),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(isFocus ? 'Foco' : 'Pausa', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 180,
+                height: 180,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      height: 160,
+                      child: CircularProgressIndicator(
+                        value: controller.progress.clamp(0, 1),
+                        strokeWidth: 10,
+                      ),
+                    ),
+                    Text(remaining, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 12,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: isRunning ? null : controller.start,
+                    child: const Text('Start'),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: isRunning ? controller.pause : null,
+                    child: const Text('Pause'),
+                  ),
+                  FilledButton(onPressed: controller.reset, child: const Text('Reset')),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text('Sessões concluídas: ${controller.sessionsDone}'),
+              const SizedBox(height: 8),
+              Text(
+                'Foco: ${controller.workMinutes} min • Pausa: ${controller.breakMinutes} min',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(isFocus ? 'Foco' : 'Pausa', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: 180,
-                    height: 180,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 160,
-                          height: 160,
-                          child: CircularProgressIndicator(
-                            value: controller.progress.clamp(0, 1),
-                            strokeWidth: 10,
-                          ),
-                        ),
-                        Text(
-                          remaining,
-                          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Wrap(
-                    spacing: 12,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: isRunning ? null : controller.start,
-                        child: const Text('Start'),
-                      ),
-                      FilledButton.tonal(
-                        onPressed: isRunning ? controller.pause : null,
-                        child: const Text('Pause'),
-                      ),
-                      FilledButton(
-                        onPressed: controller.reset,
-                        child: const Text('Reset'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Sessões concluídas: ${controller.sessionsDone}'),
-                  const SizedBox(height: 8),
-                  Text('Foco: ${controller.workMinutes} min • Pausa: ${controller.breakMinutes} min',
-                      style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
